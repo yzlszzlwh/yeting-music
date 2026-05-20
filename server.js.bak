@@ -1,0 +1,156 @@
+/**
+ * 免费音乐播放器 - 服务端
+ * 基于 NeteaseCloudMusicApi，提供网易云音乐搜索/播放/歌单功能
+ * PWA 前端通过此服务器访问，华为手机可安装到桌面
+ */
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// 动态加载 NeteaseCloudMusicApi
+let neteaseApi = null;
+async function getNeteaseApi() {
+    if (neteaseApi) return neteaseApi;
+    try {
+        neteaseApi = require('NeteaseCloudMusicApi');
+        console.log('✅ NeteaseCloudMusicApi 加载成功');
+        return neteaseApi;
+    } catch (e) {
+        console.error('❌ NeteaseCloudMusicApi 加载失败:', e.message);
+        return null;
+    }
+}
+
+// 通用API调用包装
+async function callApi(name, params = {}) {
+    const api = await getNeteaseApi();
+    if (!api || !api[name]) {
+        return { code: 500, msg: `API ${name} 不可用` };
+    }
+    try {
+        const result = await api[name]({ ...params, cookie: '', realIP: '' });
+        return result.body || result;
+    } catch (e) {
+        console.error(`API ${name} 错误:`, e.message);
+        return { code: 500, msg: e.message };
+    }
+}
+
+// ====== API 路由 ======
+
+// 搜索
+app.get('/api/search', async (req, res) => {
+    const { keywords, type = 1, limit = 30, offset = 0 } = req.query;
+    if (!keywords) return res.json({ code: 400, msg: '缺少关键词' });
+    const data = await callApi('search', {
+        keywords, type: Number(type), limit: Number(limit), offset: Number(offset)
+    });
+    res.json(data);
+});
+
+// 热搜
+app.get('/api/search/hot', async (req, res) => {
+    const data = await callApi('search_hot');
+    res.json(data);
+});
+
+// 推荐歌单
+app.get('/api/personalized', async (req, res) => {
+    const { limit = 20 } = req.query;
+    const data = await callApi('personalized', { limit: Number(limit) });
+    res.json(data);
+});
+
+// 歌单详情
+app.get('/api/playlist/detail', async (req, res) => {
+    const { id } = req.query;
+    if (!id) return res.json({ code: 400, msg: '缺少歌单ID' });
+    const data = await callApi('playlist_detail', { id });
+    res.json(data);
+});
+
+// 歌曲详情
+app.get('/api/song/detail', async (req, res) => {
+    const { ids } = req.query;
+    if (!ids) return res.json({ code: 400, msg: '缺少歌曲ID' });
+    const data = await callApi('song_detail', { ids });
+    res.json(data);
+});
+
+// 歌曲播放URL
+app.get('/api/song/url', async (req, res) => {
+    const { id, br = 320000 } = req.query;
+    if (!id) return res.json({ code: 400, msg: '缺少歌曲ID' });
+    const data = await callApi('song_url_v1', {
+        id, level: 'standard', br: Number(br)
+    });
+    res.json(data);
+});
+
+// 歌词
+app.get('/api/lyric', async (req, res) => {
+    const { id } = req.query;
+    if (!id) return res.json({ code: 400, msg: '缺少歌曲ID' });
+    const data = await callApi('lyric_new', { id });
+    res.json(data);
+});
+
+// 排行榜
+app.get('/api/toplist', async (req, res) => {
+    const data = await callApi('toplist');
+    res.json(data);
+});
+
+// 排行榜详情
+app.get('/api/toplist/detail', async (req, res) => {
+    const data = await callApi('toplist_detail');
+    res.json(data);
+});
+
+// 歌手热门歌曲
+app.get('/api/artist/songs', async (req, res) => {
+    const { id } = req.query;
+    if (!id) return res.json({ code: 400, msg: '缺少歌手ID' });
+    const data = await callApi('artist_top_song', { id });
+    res.json(data);
+});
+
+// 专辑详情
+app.get('/api/album', async (req, res) => {
+    const { id } = req.query;
+    if (!id) return res.json({ code: 400, msg: '缺少专辑ID' });
+    const data = await callApi('album', { id });
+    res.json(data);
+});
+
+// Banner
+app.get('/api/banner', async (req, res) => {
+    const data = await callApi('banner', { type: 0 });
+    res.json(data);
+});
+
+// 默认首页
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// 启动
+const PORT = process.env.PORT || 3456;
+app.listen(PORT, '0.0.0.0', async () => {
+    // 预加载API模块
+    await getNeteaseApi();
+    const nets = require('os').networkInterfaces();
+    console.log(`\n🎵 免费音乐播放器已启动！`);
+    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    console.log(`📱 手机访问: http://192.168.1.3:${PORT}`);
+    console.log(`💻 本地访问: http://localhost:${PORT}`);
+    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    console.log(`💡 安装到手机：用浏览器打开 → 添加到主屏幕`);
+    console.log(``);
+});
