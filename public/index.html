@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>乐听 - 免费听歌</title>
+<link rel="manifest" href="/manifest.json">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f0f1a;color:#fff;min-height:100vh;overflow-x:hidden}
+:root{--accent:#ff4757;--accent2:#ff6b81;--bg:#0f0f1a;--card:#1a1a2e;--card2:#16213e;--text:#c8c8d4;--muted:#6c6c80}
+
+/* Header */
+.header{position:sticky;top:0;z-index:100;background:var(--bg);padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.05)}
+.header-inner{display:flex;align-items:center;gap:12px;max-width:600px;margin:0 auto}
+.logo{font-size:22px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;flex-shrink:0}
+.search-box{flex:1;position:relative}
+.search-box input{width:100%;padding:10px 40px 10px 14px;border-radius:20px;border:none;background:var(--card2);color:#fff;font-size:15px;outline:none}
+.search-box input::placeholder{color:var(--muted)}
+.search-box .search-icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:16px}
+
+/* Nav tabs */
+.nav-tabs{display:flex;gap:0;max-width:600px;margin:0 auto;padding:0 16px;border-bottom:1px solid rgba(255,255,255,.05)}
+.nav-tab{flex:1;text-align:center;padding:12px 0;font-size:14px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:.2s;user-select:none}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* Content */
+.content{max-width:600px;margin:0 auto;padding:16px}
+.section-title{font-size:16px;font-weight:600;margin:16px 0 12px;color:#fff}
+
+/* Song list */
+.song-list{display:flex;flex-direction:column;gap:2px}
+.song-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background .15s}
+.song-item:hover,.song-item:active{background:var(--card2)}
+.song-item.playing{background:rgba(255,71,87,.12)}
+.song-cover{width:44px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--card2)}
+.song-info{flex:1;min-width:0}
+.song-name{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.song-artist{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.song-dur{font-size:12px;color:var(--muted);flex-shrink:0}
+
+/* Playlist grid */
+.playlist-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.playlist-card{background:var(--card);border-radius:10px;overflow:hidden;cursor:pointer;transition:transform .15s}
+.playlist-card:active{transform:scale(.97)}
+.playlist-cover{width:100%;aspect-ratio:1;object-fit:cover}
+.playlist-info{padding:8px 10px 10px}
+.playlist-name{font-size:13px;font-weight:500;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3}
+.playlist-count{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* Hot search tags */
+.hot-tags{display:flex;flex-wrap:wrap;gap:8px}
+.hot-tag{padding:6px 14px;border-radius:16px;background:var(--card2);font-size:13px;color:var(--text);cursor:pointer;white-space:nowrap;transition:.15s}
+.hot-tag:active{background:var(--accent);color:#fff}
+.hot-tag.hot{color:var(--accent2)}
+
+/* Banner */
+.banner-wrap{position:relative;border-radius:12px;overflow:hidden;margin-bottom:16px}
+.banner-img{width:100%;aspect-ratio:2.5;object-fit:cover}
+.banner-title{position:absolute;bottom:0;left:0;right:0;padding:24px 16px 12px;background:linear-gradient(transparent,rgba(0,0,0,.6));font-size:15px;font-weight:600}
+
+/* Player */
+.player{position:fixed;bottom:0;left:0;right:0;background:rgba(22,22,40,.97);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,.08);padding:8px 16px max(8px,env(safe-area-inset-bottom));z-index:200}
+.player-inner{max-width:600px;margin:0 auto;display:flex;align-items:center;gap:12px}
+.player-cover{width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0}
+.player-info{flex:1;min-width:0}
+.player-name{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.player-artist{font-size:12px;color:var(--muted);margin-top:1px}
+.player-controls{display:flex;align-items:center;gap:16px}
+.player-btn{width:36px;height:36px;border-radius:50%;border:none;background:var(--card2);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s}
+.player-btn.play-btn{width:44px;height:44px;background:var(--accent)}
+.player-btn:active{transform:scale(.92)}
+
+/* Progress bar */
+.progress-wrap{max-width:600px;margin:0 auto;display:flex;align-items:center;gap:8px;padding:0 16px 4px}
+.progress-bar{flex:1;height:3px;background:var(--card2);border-radius:2px;cursor:pointer;position:relative}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s linear}
+.progress-time{font-size:11px;color:var(--muted);min-width:35px}
+
+/* Full lyric */
+.lyric-panel{position:fixed;inset:0;z-index:300;background:rgba(15,15,26,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px}
+.lyric-line{font-size:16px;color:var(--muted);padding:8px 0;transition:.3s;text-align:center}
+.lyric-line.active{color:#fff;font-size:20px;font-weight:500}
+.lyric-close{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,.1);color:#fff;font-size:18px;cursor:pointer}
+
+/* Loading */
+.loading{text-align:center;padding:40px;color:var(--muted)}
+.spinner{width:24px;height:24px;border:2px solid var(--card2);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;margin:0 auto 8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Toast */
+.toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.8);color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;z-index:999;pointer-events:none;animation:toastFade 2s forwards}
+@keyframes toastFade{0%{opacity:0}20%{opacity:1}80%{opacity:1}100%{opacity:0}}
+
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="logo">🎵 乐听</div>
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="搜歌曲、歌手..." onkeydown="if(event.key==='Enter')doSearch()">
+      <span class="search-icon" onclick="doSearch()">🔍</span>
+    </div>
+  </div>
+</div>
+
+<div class="nav-tabs" id="navTabs">
+  <div class="nav-tab active" data-tab="recommend">推荐</div>
+  <div class="nav-tab" data-tab="hot">热搜</div>
+  <div class="nav-tab" data-tab="toplist">排行</div>
+</div>
+
+<div class="content" id="content"></div>
+
+<div class="player hidden" id="player">
+  <div class="progress-wrap">
+    <span class="progress-time" id="curTime">0:00</span>
+    <div class="progress-bar" id="progressBar" onclick="seek(event)">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+    <span class="progress-time" id="durTime">0:00</span>
+  </div>
+  <div class="player-inner">
+    <img class="player-cover" id="playerCover" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'><rect fill='%2316213e' width='1' height='1'/></svg>">
+    <div class="player-info" onclick="showLyric()">
+      <div class="player-name" id="playerName">未播放</div>
+      <div class="player-artist" id="playerArtist"></div>
+    </div>
+    <div class="player-controls">
+      <button class="player-btn" onclick="prevSong()">⏮</button>
+      <button class="player-btn play-btn" id="playBtn" onclick="togglePlay()">▶️</button>
+      <button class="player-btn" onclick="nextSong()">⏭</button>
+    </div>
+  </div>
+</div>
+
+<div class="lyric-panel hidden" id="lyricPanel" onclick="hideLyric()">
+  <button class="lyric-close">✕</button>
+  <div id="lyricLines"></div>
+</div>
+
+<script>
+// Config - change API_BASE to your server URL
+const API_BASE = location.hostname === 'localhost' ? '' : '';
+
+// State
+let currentTab = 'recommend';
+let audio = new Audio();
+let currentSong = null;
+let playlist = [];
+let playlistIndex = -1;
+let lyrics = [];
+let isPlaying = false;
+let bannerData = [];
+
+// Init
+document.addEventListener('DOMContentLoaded', () => {
+  loadRecommend();
+  setupTabs();
+  audio.ontimeupdate = updateProgress;
+  audio.onended = nextSong;
+  audio.onerror = () => toast('播放失败，可能需付费歌曲');
+  audio.onplay = () => { isPlaying = true; updatePlayBtn(); };
+  audio.onpause = () => { isPlaying = false; updatePlayBtn(); };
+});
+
+function setupTabs() {
+  document.querySelectorAll('.nav-tab').forEach(t => {
+    t.onclick = () => {
+      document.querySelectorAll('.nav-tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      currentTab = t.dataset.tab;
+      if (currentTab === 'recommend') loadRecommend();
+      else if (currentTab === 'hot') loadHotSearch();
+      else if (currentTab === 'toplist') loadToplist();
+    };
+  });
+}
+
+// API calls
+async function api(path, params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  const url = API_BASE + path + (qs ? '?' + qs : '');
+  const resp = await fetch(url);
+  return resp.json();
+}
+
+async function doSearch() {
+  const kw = document.getElementById('searchInput').value.trim();
+  if (!kw) return;
+  const data = await api('/api/search_all', { keywords: kw, limit: 30 });
+  const songs = data.result?.songs || [];
+  if (!songs.length) return toast('未找到结果');
+  renderSearchResults(songs, kw);
+}
+
+// Render functions
+function renderSongList(songs, title) {
+  document.getElementById('content').innerHTML = `
+    <div class="section-title">${title}</div>
+    <div class="song-list">${songs.map((s,i) => {
+      const dur = s.duration ? Math.floor(s.duration/1000) : 0;
+      const min = Math.floor(dur/60), sec = String(dur%60).padStart(2,'0');
+      const cover = (s.al?.picUrl || s.album?.picUrl || '').replace(/^http:/,'https:');
+      return `<div class="song-item" onclick="playSong(${i})" data-idx="${i}">
+        <img class="song-cover" src="${cover}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1 1%22><rect fill=%22%2316213e%22 width=%221%22 height=%221%22/></svg>'">
+        <div class="song-info">
+          <div class="song-name">${escapeHtml(s.name)}</div>
+          <div class="song-artist">${(s.ar||s.artists||[]).map(a=>a.name).join(' / ')}</div>
+        </div>
+        <div class="song-dur">${min}:${sec}</div>
+      </div>`;
+    }).join('')}</div>`;
+}
+
+function renderSearchResults(songs, kw) {
+  window._searchSongs = songs;
+  renderSongList(songs, `搜索"${kw}" (${songs.length}首)`);
+}
+
+function renderPlaylistGrid(playlists, title) {
+  document.getElementById('content').innerHTML = `
+    <div class="section-title">${title}</div>
+    <div class="playlist-grid">${playlists.map(p => {
+      const cover = (p.picUrl||p.coverImgUrl||'').replace(/^http:/,'https:');
+      const count = p.playCount || p.trackCount || '';
+      const countText = count > 10000 ? `${(count/10000).toFixed(0)}万` : count;
+      return `<div class="playlist-card" onclick="loadPlaylist('${p.id}','${escapeAttr(p.name)}')">
+        <img class="playlist-cover" src="${cover}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1 1%22><rect fill=%22%2316213e%22 width=%221%22 height=%221%22/></svg>'">
+        <div class="playlist-info">
+          <div class="playlist-name">${escapeHtml(p.name)}</div>
+          ${countText ? `<div class="playlist-count">▶ ${countText}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('')}</div>`;
+}
+
+// Tab loaders
+async function loadRecommend() {
+  document.getElementById('content').innerHTML = '<div class="loading"><div class="spinner"></div>加载中</div>';
+  try {
+    const [banner, rec] = await Promise.all([
+      api('/api/banner'),
+      api('/api/personalized', { limit: 20 })
+    ]);
+    const banners = banner.banners || [];
+    const playlists = rec.result || [];
+    
+    let html = '';
+    if (banners.length) {
+      bannerData = banners;
+      const b = banners[0];
+      html += `<div class="banner-wrap" onclick="${b.url ? `openUrl('${escapeAttr(b.url)}')` : ''}">
+        <img class="banner-img" src="${(b.pic||b.imageUrl||'').replace(/^http:/,'https:')}">
+        <div class="banner-title">${escapeHtml(b.typeTitle||'')}</div>
+      </div>`;
+    }
+    html += `<div class="section-title">推荐歌单</div>
+      <div class="playlist-grid">${playlists.map(p => {
+        const cover = (p.picUrl||'').replace(/^http:/,'https:');
+        return `<div class="playlist-card" onclick="loadPlaylist('${p.id}','${escapeAttr(p.name)}')">
+          <img class="playlist-cover" src="${cover}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1 1%22><rect fill=%22%2316213e%22 width=%221%22 height=%221%22/></svg>'">
+          <div class="playlist-info">
+            <div class="playlist-name">${escapeHtml(p.name)}</div>
+            <div class="playlist-count">▶ ${(p.playCount/10000).toFixed(0)}万</div>
+          </div>
+        </div>`;
+      }).join('')}</div>`;
+    document.getElementById('content').innerHTML = html;
+  } catch(e) {
+    document.getElementById('content').innerHTML = '<div class="loading">加载失败，请检查网络</div>';
+  }
+}
+
+async function loadHotSearch() {
+  document.getElementById('content').innerHTML = '<div class="loading"><div class="spinner"></div>加载中</div>';
+  try {
+    const data = await api('/api/search/hot');
+    const hots = data.data || data.result?.hots || [];
+    document.getElementById('content').innerHTML = `
+      <div class="section-title">🔥 热搜榜</div>
+      <div class="hot-tags">${hots.map((h,i) => 
+        `<div class="hot-tag ${i<3?'hot':''}" onclick="hotSearchClick('${escapeAttr(h.first||h.searchWord)}')">${i+1}. ${escapeHtml(h.first||h.searchWord)}</div>`
+      ).join('')}</div>`;
+  } catch(e) {
+    document.getElementById('content').innerHTML = '<div class="loading">加载失败</div>';
+  }
+}
+
+async function hotSearchClick(kw) {
+  document.getElementById('searchInput').value = kw;
+  doSearch();
+}
+
+async function loadToplist() {
+  document.getElementById('content').innerHTML = '<div class="loading"><div class="spinner"></div>加载中</div>';
+  try {
+    const data = await api('/api/toplist/detail');
+    const lists = data.list || [];
+    document.getElementById('content').innerHTML = `
+      <div class="section-title">🏆 排行榜</div>
+      <div class="song-list">${lists.filter(l=>l.tracks?.length).map(l => {
+        const cover = (l.coverImgUrl||'').replace(/^http:/,'https:');
+        return `<div class="song-item" onclick="loadToplistSongs(${l.id},'${escapeAttr(l.name)}')">
+          <img class="song-cover" src="${cover}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1 1%22><rect fill=%22%2316213e%22 width=%221%22 height=%221%22/></svg>'">
+          <div class="song-info">
+            <div class="song-name">${escapeHtml(l.name)}</div>
+            <div class="song-artist">${l.updateFrequency||''}</div>
+          </div>
+        </div>`;
+      }).join('')}</div>`;
+  } catch(e) {
+    document.getElementById('content').innerHTML = '<div class="loading">加载失败</div>';
+  }
+}
+
+async function loadToplistSongs(id, name) {
+  document.getElementById('content').innerHTML = '<div class="loading"><div class="spinner"></div>加载中</div>';
+  const data = await api('/api/playlist/detail', { id });
+  const songs = data.playlist?.tracks || [];
+  window._searchSongs = songs;
+  renderSongList(songs, name);
+}
+
+async function loadPlaylist(id, name) {
+  document.getElementById('content').innerHTML = '<div class="loading"><div class="spinner"></div>加载中</div>';
+  const data = await api('/api/playlist/detail', { id });
+  const songs = data.playlist?.tracks || [];
+  window._searchSongs = songs;
+  renderSongList(songs, name);
+}
+
+// Player
+async function playSong(idx) {
+  const songs = window._searchSongs || [];
+  if (!songs[idx]) return;
+  playlist = songs;
+  playlistIndex = idx;
+  await playCurrent();
+  showPlayer(true);
+}
+
+async function playCurrent() {
+  const s = playlist[playlistIndex];
+  if (!s) return;
+  currentSong = s;
+  
+  document.getElementById('playerName').textContent = s.name;
+  document.getElementById('playerArtist').textContent = (s.ar||s.artists||[]).map(a=>a.name).join(' / ');
+  
+  const cover = (s.al?.picUrl || s.album?.picUrl || '').replace(/^http:/,'https:');
+  document.getElementById('playerCover').src = cover;
+  
+  document.getElementById('playBtn').textContent = '⏳';
+  
+  // Load lyrics
+  try {
+    const lyricData = await api('/api/lyric', { id: s.id });
+    parseLyric(lyricData.lrc?.lyric || '');
+  } catch(e) { lyrics = []; }
+
+  // Get play URL
+  try {
+    const urlData = await api('/api/song/url', { id: s.id });
+    const url = urlData.data?.[0]?.url;
+    if (url) {
+      audio.src = url.replace(/^http:/,'https:');
+      audio.play().catch(() => toast('播放失败'));
+    } else {
+      toast('暂无免费音源');
+    }
+  } catch(e) {
+    toast('获取播放地址失败');
+  }
+  
+  // Highlight in list
+  document.querySelectorAll('.song-item').forEach(el => el.classList.remove('playing'));
+  document.querySelector(`.song-item[data-idx="${playlistIndex}"]`)?.classList.add('playing');
+}
+
+function togglePlay() {
+  if (!audio.src) return;
+  if (isPlaying) audio.pause();
+  else audio.play().catch(() => {});
+}
+
+function prevSong() {
+  if (!playlist.length) return;
+  playlistIndex = (playlistIndex - 1 + playlist.length) % playlist.length;
+  playCurrent();
+}
+
+function nextSong() {
+  if (!playlist.length) return;
+  playlistIndex = (playlistIndex + 1) % playlist.length;
+  playCurrent();
+}
+
+function updatePlayBtn() {
+  document.getElementById('playBtn').textContent = isPlaying ? '⏸️' : '▶️';
+}
+
+function updateProgress() {
+  if (!audio.duration) return;
+  const pct = (audio.currentTime / audio.duration * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('curTime').textContent = formatTime(audio.currentTime);
+  document.getElementById('durTime').textContent = formatTime(audio.duration);
+}
+
+function seek(e) {
+  const bar = document.getElementById('progressBar');
+  const rect = bar.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  audio.currentTime = pct * audio.duration;
+}
+
+function showPlayer(show) {
+  document.getElementById('player').classList.toggle('hidden', !show);
+  document.querySelector('.content').style.paddingBottom = show ? '140px' : '16px';
+}
+
+// Lyrics
+function parseLyric(text) {
+  lyrics = [];
+  const lines = text.split('\n');
+  const timeRe = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/g;
+  lines.forEach(line => {
+    const match = line.match(timeRe);
+    if (!match) return;
+    const text = line.replace(timeRe, '').trim();
+    if (!text) return;
+    match.forEach(m => {
+      const [, min, sec, ms] = m.match(/\[(\d{2}):(\d{2})\.(\d{2,3})\]/);
+      lyrics.push({ time: parseInt(min)*60 + parseInt(sec) + parseInt(ms)/1000, text });
+    });
+  });
+  lyrics.sort((a,b) => a.time - b.time);
+}
+
+function showLyric() {
+  if (!lyrics.length) return toast('暂无歌词');
+  const panel = document.getElementById('lyricPanel');
+  panel.classList.remove('hidden');
+  document.getElementById('lyricLines').innerHTML = lyrics.map((l,i) => 
+    `<div class="lyric-line" data-idx="${i}">${escapeHtml(l.text)}</div>`
+  ).join('');
+  syncLyric();
+}
+
+function hideLyric() {
+  document.getElementById('lyricPanel').classList.add('hidden');
+}
+
+function syncLyric() {
+  const ct = audio.currentTime;
+  let activeIdx = -1;
+  for (let i = lyrics.length-1; i >= 0; i--) {
+    if (lyrics[i].time <= ct) { activeIdx = i; break; }
+  }
+  document.querySelectorAll('.lyric-line').forEach((el,i) => {
+    el.classList.toggle('active', i === activeIdx);
+    if (i === activeIdx) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+  if (!document.getElementById('lyricPanel').classList.contains('hidden')) {
+    requestAnimationFrame(() => setTimeout(syncLyric, 200));
+  }
+}
+
+// Utils
+function formatTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return m + ':' + String(sec).padStart(2, '0');
+}
+
+function escapeHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+function escapeAttr(s) {
+  return String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2000);
+}
+
+// Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js');
+}
+</script>
+</body>
+</html>
